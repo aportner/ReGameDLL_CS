@@ -164,6 +164,7 @@ cvar_t t_default_weapons_primary         = { "mp_t_default_weapons_primary", "",
 cvar_t default_weapons_random            = { "mp_default_weapons_random", "", 0, 0.0f, nullptr };
 cvar_t free_armor                        = { "mp_free_armor", "0", 0, 0.0f, nullptr };
 cvar_t teamflash                         = { "mp_team_flash", "1", 0, 1.0f, nullptr };
+cvar_t pistol_air_accuracy               = { "mp_pistol_air_accuracy", "0", 0, 0.0f, nullptr };
 cvar_t allchat                           = { "sv_allchat", "0", 0, 0.0f, nullptr };
 cvar_t sv_autobunnyhopping               = { "sv_autobunnyhopping", "0", 0, 0.0f, nullptr };
 cvar_t sv_enablebunnyhopping             = { "sv_enablebunnyhopping", "0", 0, 0.0f, nullptr };
@@ -452,6 +453,7 @@ void EXT_FUNC GameDLLInit()
 	CVAR_REGISTER(&default_weapons_random);
 	CVAR_REGISTER(&free_armor);
 	CVAR_REGISTER(&teamflash);
+	CVAR_REGISTER(&pistol_air_accuracy);
 	CVAR_REGISTER(&allchat);
 	CVAR_REGISTER(&sv_autobunnyhopping);
 	CVAR_REGISTER(&sv_enablebunnyhopping);

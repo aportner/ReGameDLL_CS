@@ -73,7 +73,11 @@ BOOL CELITE::Deploy()
 
 void CELITE::PrimaryAttack()
 {
+#ifdef REGAMEDLL_ADD
+	if (!pistol_air_accuracy.value && !(m_pPlayer->pev->flags & FL_ONGROUND))
+#else
 	if (!(m_pPlayer->pev->flags & FL_ONGROUND))
+#endif
 	{
 		ELITEFire(1.3 * (1 - m_flAccuracy), 0.2, FALSE);
 	}
