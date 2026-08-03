@@ -1137,7 +1137,7 @@ bool CanBuyThis(CBasePlayer *pPlayer, int iWeapon)
 	{
 		if (g_bClientPrintEnable)
 		{
-			ClientPrint(pPlayer->pev, HUD_PRINTCENTER, "Shield buying is disabled on this server.");
+			ClientPrint(pPlayer->pev, HUD_PRINTCENTER, "#Cannot_Buy_This");
 		}
 
 		return false;
