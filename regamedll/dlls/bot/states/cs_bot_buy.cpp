@@ -44,6 +44,15 @@ bool HasDefaultPistol(CCSBot *me)
 	return false;
 }
 
+static bool IsBotAllowedToBuyShield()
+{
+#ifdef REGAMEDLL_ADD
+	return buy_allow_shield.value != 0.0f;
+#else
+	return true;
+#endif
+}
+
 // Buy weapons, armor, etc.
 void BuyState::OnEnter(CCSBot *me)
 {
@@ -76,7 +85,7 @@ void BuyState::OnEnter(CCSBot *me)
 		}
 
 		// determine if we want a tactical shield
-		if (!me->m_bHasPrimary && TheCSBots()->AllowTacticalShield())
+		if (!me->m_bHasPrimary && TheCSBots()->AllowTacticalShield() && IsBotAllowedToBuyShield())
 		{
 			if (me->m_iAccount > 2500)
 			{
@@ -322,7 +331,7 @@ void BuyState::OnUpdate(CCSBot *me)
 			const char *buyAlias = nullptr;
 			if (weaponPreference == WEAPON_SHIELDGUN)
 			{
-				if (TheCSBots()->AllowTacticalShield())
+				if (TheCSBots()->AllowTacticalShield() && IsBotAllowedToBuyShield())
 					buyAlias = "shield";
 			}
 			else

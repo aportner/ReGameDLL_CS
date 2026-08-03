@@ -1132,6 +1132,18 @@ void EXT_FUNC __API_HOOK(SendSayMessage)(CBasePlayer *pPlayer, const char *pszCm
 
 bool CanBuyThis(CBasePlayer *pPlayer, int iWeapon)
 {
+#ifdef REGAMEDLL_ADD
+	if (iWeapon == WEAPON_SHIELDGUN && buy_allow_shield.value == 0.0f)
+	{
+		if (g_bClientPrintEnable)
+		{
+			ClientPrint(pPlayer->pev, HUD_PRINTCENTER, "Shield buying is disabled on this server.");
+		}
+
+		return false;
+	}
+#endif
+
 	if (pPlayer->HasShield() && iWeapon == WEAPON_ELITE)
 		return false;
 

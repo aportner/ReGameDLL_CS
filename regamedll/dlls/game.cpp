@@ -137,6 +137,7 @@ cvar_t respawn_immunity_force_unset = { "mp_respawn_immunity_force_unset", "1", 
 cvar_t kill_filled_spawn            = { "mp_kill_filled_spawn", "1", 0, 0.0f, nullptr };
 cvar_t afk_bomb_drop_time           = { "mp_afk_bomb_drop_time", "0", FCVAR_SERVER, 0.0f, nullptr };
 cvar_t buy_anywhere                 = { "mp_buy_anywhere", "0", FCVAR_SERVER, 0.0f, nullptr };
+cvar_t buy_allow_shield             = { "mp_buy_allow_shield", "1", FCVAR_SERVER, 1.0f, nullptr };
 cvar_t give_player_c4               = { "mp_give_player_c4", "1", FCVAR_SERVER, 0.0f, nullptr };
 cvar_t weapons_allow_map_placed     = { "mp_weapons_allow_map_placed", "1", FCVAR_SERVER, 0.0f, nullptr };
 
@@ -426,6 +427,7 @@ void EXT_FUNC GameDLLInit()
 	CVAR_REGISTER(&kill_filled_spawn);
 	CVAR_REGISTER(&afk_bomb_drop_time);
 	CVAR_REGISTER(&buy_anywhere);
+	CVAR_REGISTER(&buy_allow_shield);
 	CVAR_REGISTER(&give_player_c4);
 	CVAR_REGISTER(&allow_point_servercommand);
 	CVAR_REGISTER(&hullbounds_sets);
