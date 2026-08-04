@@ -3694,16 +3694,52 @@ void EXT_FUNC InternalCommand(edict_t *pEntity, const char *pcmd, const char *pa
 #ifdef REGAMEDLL_ADD
 			else if (FStrEq(pcmd, "give"))
 			{
-				if (CVAR_GET_FLOAT("sv_cheats") != 0.0f && CMD_ARGC() > 1 && FStrnEq(parg1, "weapon_", sizeof("weapon_") - 1))
+				if (CVAR_GET_FLOAT("sv_cheats") != 0.0f && CMD_ARGC() > 1)
 				{
-					const auto pInfo = GetWeaponInfo(parg1);
+					const WeaponInfoStruct *pInfo = nullptr;
+
+					if (FStrnEq(parg1, "weapon_", sizeof("weapon_") - 1))
+					{
+						pInfo = GetWeaponInfo(parg1);
+					}
+					else
+					{
+						const auto weaponId = AliasToWeaponID(parg1);
+
+						if (weaponId != WEAPON_NONE)
+						{
+							pInfo = GetWeaponInfo(weaponId);
+						}
+					}
+
 					if (pInfo)
 					{
-						if (pInfo->id != WEAPON_GLOCK && pInfo->id != WEAPON_C4 /* && pInfo->id != WEAPON_KNIFE */)
+						// weapon_glock is a legacy alias for the Glock 18, not an entity classname.
+						const auto pGiveInfo = pInfo->id == WEAPON_GLOCK ? GetWeaponInfo(WEAPON_GLOCK18) : pInfo;
+
+						if (pGiveInfo)
 						{
-							pPlayer->GiveNamedItemEx(pInfo->entityName);
-							pPlayer->GiveAmmo(pInfo->maxRounds, pInfo->ammoName2);
+							// This wrapper also maintains the extra player state used by the shield and C4.
+							pPlayer->CSPlayer()->GiveNamedItemEx(pGiveInfo->entityName);
+
+							if (pGiveInfo->ammoName2 && pGiveInfo->maxRounds > 0)
+							{
+								pPlayer->GiveAmmo(pGiveInfo->maxRounds, pGiveInfo->ammoName2);
+							}
 						}
+					}
+					else if (FStrnEq(parg1, "ammo_", sizeof("ammo_") - 1))
+					{
+						const auto pInfo = GetAmmoInfo(parg1);
+
+						if (pInfo && pInfo->ammoName2)
+						{
+							pPlayer->GiveAmmo(pInfo->buyClipSize, pInfo->ammoName2, pInfo->maxRounds);
+						}
+					}
+					else if (FStrnEq(parg1, "item_", sizeof("item_") - 1))
+					{
+						pPlayer->GiveNamedItemEx(parg1);
 					}
 				}
 			}
