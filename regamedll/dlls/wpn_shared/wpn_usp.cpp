@@ -116,7 +116,11 @@ void CUSP::PrimaryAttack()
 {
 	if (m_iWeaponState & WPNSTATE_USP_SILENCED)
 	{
+#ifdef REGAMEDLL_ADD
+		if (!pistol_air_accuracy.value && !(m_pPlayer->pev->flags & FL_ONGROUND))
+#else
 		if (!(m_pPlayer->pev->flags & FL_ONGROUND))
+#endif
 		{
 			USPFire(1.3 * (1 - m_flAccuracy), 0.225, FALSE);
 		}
@@ -135,7 +139,11 @@ void CUSP::PrimaryAttack()
 	}
 	else
 	{
+#ifdef REGAMEDLL_ADD
+		if (!pistol_air_accuracy.value && !(m_pPlayer->pev->flags & FL_ONGROUND))
+#else
 		if (!(m_pPlayer->pev->flags & FL_ONGROUND))
+#endif
 		{
 			USPFire(1.2 * (1 - m_flAccuracy), 0.225, FALSE);
 		}

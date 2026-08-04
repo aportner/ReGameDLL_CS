@@ -115,7 +115,11 @@ void CGLOCK18::PrimaryAttack()
 {
 	if (m_iWeaponState & WPNSTATE_GLOCK18_BURST_MODE)
 	{
+#ifdef REGAMEDLL_ADD
+		if (!pistol_air_accuracy.value && !(m_pPlayer->pev->flags & FL_ONGROUND))
+#else
 		if (!(m_pPlayer->pev->flags & FL_ONGROUND))
+#endif
 		{
 			GLOCK18Fire(1.2 * (1 - m_flAccuracy), 0.5, TRUE);
 		}
@@ -134,7 +138,11 @@ void CGLOCK18::PrimaryAttack()
 	}
 	else
 	{
+#ifdef REGAMEDLL_ADD
+		if (!pistol_air_accuracy.value && !(m_pPlayer->pev->flags & FL_ONGROUND))
+#else
 		if (!(m_pPlayer->pev->flags & FL_ONGROUND))
+#endif
 		{
 			GLOCK18Fire(1.0 * (1 - m_flAccuracy), 0.2, FALSE);
 		}
