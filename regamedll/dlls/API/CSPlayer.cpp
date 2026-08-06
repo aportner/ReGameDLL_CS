@@ -702,7 +702,7 @@ void CCSPlayer::PrintCombatReport() const
 
 	CBasePlayer *pPlayer = BasePlayer();
 	char report[512];
-	Q_snprintf(report, sizeof(report), "COMBAT REPORT\nOUT hits/dmg | IN hits/dmg\n\n");
+	Q_snprintf(report, sizeof(report), "COMBAT REPORT\n\n");
 	bool hasCombat = false;
 
 	for (int i = 0; i < m_CombatReportList.Count(); i++)
@@ -714,7 +714,7 @@ void CCSPlayer::PrintCombatReport() const
 		hasCombat = true;
 
 		char line[128];
-		Q_snprintf(line, sizeof(line), "%s: OUT %d/%d | IN %d/%d\n",
+		Q_snprintf(line, sizeof(line), "%s: OUT %d hit(s), %d dmg | IN %d hit(s), %d dmg\n",
 			record.name, record.hitsDealt, record.damageDealt,
 			record.hitsReceived, record.damageReceived);
 
