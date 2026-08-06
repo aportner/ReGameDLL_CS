@@ -710,71 +710,55 @@ void CCSPlayer::PrintCombatReport() const
 		return;
 
 	CBasePlayer *pPlayer = BasePlayer();
-	char report[512];
-	Q_snprintf(report, sizeof(report), "COMBAT REPORT\n\n");
+	char attackers[512];
+	char victims[512];
+	Q_snprintf(attackers, sizeof(attackers), "ATTACKERS:\n");
+	Q_snprintf(victims, sizeof(victims), "VICTIMS:\n");
 	bool hasAttackers = false;
 	bool hasVictims = false;
+	bool attackersTruncated = false;
+	bool victimsTruncated = false;
 
 	for (int i = 0; i < m_CombatReportList.Count(); i++)
 	{
 		const CCombatReportRecord_t &record = m_CombatReportList[i];
-		hasAttackers |= (record.hitsReceived > 0);
-		hasVictims |= (record.hitsDealt > 0);
-	}
-
-	bool truncated = false;
-	if (hasAttackers)
-	{
-		AppendCombatReportText(report, sizeof(report), "ATTACKERS:\n");
-
-		for (int i = 0; i < m_CombatReportList.Count(); i++)
+		if (record.hitsReceived > 0)
 		{
-			const CCombatReportRecord_t &record = m_CombatReportList[i];
-			if (record.hitsReceived == 0)
-				continue;
-
-			char line[96];
-			Q_snprintf(line, sizeof(line), "%s -- %d hit(s), %d dmg\n",
-				record.name, record.hitsReceived, record.damageReceived);
-
-			if (!AppendCombatReportText(report, sizeof(report), line))
+			hasAttackers = true;
+			if (!attackersTruncated)
 			{
-				truncated = true;
-				break;
+				char line[96];
+				Q_snprintf(line, sizeof(line), "%s -- %d hit(s), %d dmg\n",
+					record.name, record.hitsReceived, record.damageReceived);
+
+				if (!AppendCombatReportText(attackers, sizeof(attackers), line))
+				{
+					Q_strlcat(attackers, "...\n");
+					attackersTruncated = true;
+				}
+			}
+		}
+
+		if (record.hitsDealt > 0)
+		{
+			hasVictims = true;
+			if (!victimsTruncated)
+			{
+				char line[96];
+				Q_snprintf(line, sizeof(line), "%s -- %d hit(s), %d dmg\n",
+					record.name, record.hitsDealt, record.damageDealt);
+
+				if (!AppendCombatReportText(victims, sizeof(victims), line))
+				{
+					Q_strlcat(victims, "...\n");
+					victimsTruncated = true;
+				}
 			}
 		}
 	}
-
-	if (hasVictims && !truncated)
-	{
-		AppendCombatReportText(report, sizeof(report), hasAttackers ? "\nVICTIMS:\n" : "VICTIMS:\n");
-
-		for (int i = 0; i < m_CombatReportList.Count(); i++)
-		{
-			const CCombatReportRecord_t &record = m_CombatReportList[i];
-			if (record.hitsDealt == 0)
-				continue;
-
-			char line[96];
-			Q_snprintf(line, sizeof(line), "%s -- %d hit(s), %d dmg\n",
-				record.name, record.hitsDealt, record.damageDealt);
-
-			if (!AppendCombatReportText(report, sizeof(report), line))
-			{
-				truncated = true;
-				break;
-			}
-		}
-	}
-
-	if (truncated)
-		Q_strlcat(report, "...\n");
-	else if (!hasAttackers && !hasVictims)
-		Q_strlcat(report, "No enemy damage dealt or received.\n");
 
 	hudtextparms_t textParms = {};
-	textParms.x = 0.05f;
-	textParms.y = 0.55f;
+	textParms.x = 0.55f;
 	textParms.effect = 0;
 	textParms.r1 = 100;
 	textParms.g1 = 200;
@@ -787,9 +771,27 @@ void CCSPlayer::PrintCombatReport() const
 	textParms.fadeinTime = 0.02f;
 	textParms.fadeoutTime = 1.0f;
 	textParms.holdTime = 12.0f;
-	textParms.channel = 1;
 
-	UTIL_HudMessage(pPlayer, textParms, report);
+	if (hasAttackers)
+	{
+		textParms.y = 0.35f;
+		textParms.channel = 1;
+		UTIL_HudMessage(pPlayer, textParms, attackers);
+	}
+
+	if (hasVictims)
+	{
+		textParms.y = 0.60f;
+		textParms.channel = 2;
+		UTIL_HudMessage(pPlayer, textParms, victims);
+	}
+
+	if (!hasAttackers && !hasVictims)
+	{
+		textParms.y = 0.55f;
+		textParms.channel = 1;
+		UTIL_HudMessage(pPlayer, textParms, "COMBAT REPORT\n\nNo enemy damage dealt or received.");
+	}
 }
 
 #endif // REGAMEDLL_ADD
