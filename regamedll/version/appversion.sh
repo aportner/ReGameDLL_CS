@@ -15,13 +15,18 @@ init()
 
 	# Read old version
 	if [ -e "$APPVERSION_FILE" ]; then
-		OLD_VERSION=$(cat "$APPVERSION_FILE" | grep -wi '#define APP_VERSION' | sed -e 's/#define APP_VERSION[ \t\r\n\v\f]\+\(.*\)/\1/i' -e 's/\r//g')
-		if [ $? -ne 0 ]; then
-			OLD_VERSION=""
-		else
-			# Remove quotes
-			OLD_VERSION=$(echo $OLD_VERSION | xargs)
-		fi
+		# Keep this compatible with both GNU/Linux and BSD/macOS tools.
+		# The previous sed expression used GNU's \+ extension, causing the
+		# generated header to be rewritten on every build with BSD sed.
+		OLD_VERSION=$(awk '
+			$1 == "#define" && $2 == "APP_VERSION" {
+				version = $3
+				gsub(/\r/, "", version)
+				gsub(/^"|"$/, "", version)
+				print version
+				exit
+			}
+		' "$APPVERSION_FILE")
 	fi
 
 	# Get major, minor and maintenance information from gradle.properties
