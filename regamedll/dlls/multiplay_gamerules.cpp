@@ -2,6 +2,50 @@
 
 CCStrikeGameMgrHelper g_GameMgrHelper;
 CHalfLifeMultiplay *g_pMPGameRules = nullptr;
+
+#ifdef REGAMEDLL_ADD
+const char *const g_KillStreakSounds[KILL_STREAK_SOUND_COUNT] = {
+	"regamedll/killstreak/kill_1.wav",
+	"regamedll/killstreak/kill_2.wav",
+	"regamedll/killstreak/kill_3.wav",
+	"regamedll/killstreak/kill_4.wav",
+	"regamedll/killstreak/kill_5.wav",
+};
+
+namespace
+{
+int s_iRoundKillCount[MAX_CLIENTS + 1];
+int s_iRoundKillUserId[MAX_CLIENTS + 1];
+
+void ResetRoundKillCounts()
+{
+	Q_memset(s_iRoundKillCount, 0, sizeof(s_iRoundKillCount));
+	Q_memset(s_iRoundKillUserId, 0, sizeof(s_iRoundKillUserId));
+}
+
+void PlayRoundKillSound(CBasePlayer *pKiller)
+{
+	const int playerIndex = pKiller->entindex();
+	if (playerIndex <= 0 || playerIndex > MAX_CLIENTS)
+		return;
+
+	const int userId = GETPLAYERUSERID(pKiller->edict());
+	if (s_iRoundKillUserId[playerIndex] != userId)
+	{
+		s_iRoundKillCount[playerIndex] = 0;
+		s_iRoundKillUserId[playerIndex] = userId;
+	}
+
+	const int killCount = ++s_iRoundKillCount[playerIndex];
+	const int soundIndex = Q_min(killCount, KILL_STREAK_SOUND_COUNT) - 1;
+
+	EMIT_SOUND_MSG(
+		pKiller->edict(), MSG_ONE, CHAN_ITEM, g_KillStreakSounds[soundIndex],
+		VOL_NORM, ATTN_NONE, 0, PITCH_NORM, pKiller->pev->origin, pKiller->edict());
+}
+}
+#endif
+
 RewardAccount CHalfLifeMultiplay::m_rgRewardAccountRules[RR_END];
 RewardAccount CHalfLifeMultiplay::m_rgRewardAccountRules_default[] = {
 	REWARD_CTS_WIN,                         // RR_CTS_WIN
@@ -365,6 +409,10 @@ void CHalfLifeMultiplay::ReadMultiplayCvars()
 
 CHalfLifeMultiplay::CHalfLifeMultiplay()
 {
+#ifdef REGAMEDLL_ADD
+	ResetRoundKillCounts();
+#endif
+
 	m_bFreezePeriod = TRUE;
 
 	m_VoiceGameMgr.Init(&g_GameMgrHelper, gpGlobals->maxClients);
@@ -1674,6 +1722,10 @@ LINK_HOOK_CLASS_VOID_CUSTOM_CHAIN2(CHalfLifeMultiplay, CSGameRules, RestartRound
 
 void EXT_FUNC CHalfLifeMultiplay::__API_HOOK(RestartRound)()
 {
+#ifdef REGAMEDLL_ADD
+	ResetRoundKillCounts();
+#endif
+
 	// tell bots that the round is restarting
 	if (TheBots)
 	{
@@ -4032,6 +4084,9 @@ void EXT_FUNC CHalfLifeMultiplay::__API_HOOK(PlayerKilled)(CBasePlayer *pVictim,
 		{
 			// if a player dies in a deathmatch game and the killer is a client, award the killer some points
 			pKiller->frags += IPointsForKill(peKiller, pVictim);
+#ifdef REGAMEDLL_ADD
+			PlayRoundKillSound(killer);
+#endif
 
 			if (pVictim->m_bIsVIP)
 			{
