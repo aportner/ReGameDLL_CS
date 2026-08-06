@@ -49,6 +49,9 @@ void PlayRoundKillSound(CBasePlayer *pKiller)
 }
 #endif
 
+#ifdef REGAMEDLL_ADD
+static bool g_bCombatReportPending = false;
+#endif
 RewardAccount CHalfLifeMultiplay::m_rgRewardAccountRules[RR_END];
 RewardAccount CHalfLifeMultiplay::m_rgRewardAccountRules_default[] = {
 	REWARD_CTS_WIN,                         // RR_CTS_WIN
@@ -414,6 +417,7 @@ CHalfLifeMultiplay::CHalfLifeMultiplay()
 {
 #ifdef REGAMEDLL_ADD
 	ResetRoundKillCounts();
+	g_bCombatReportPending = false;
 #endif
 
 	m_bFreezePeriod = TRUE;
@@ -1077,7 +1081,7 @@ bool CHalfLifeMultiplay::OnRoundEnd_Intercept(int winStatus, ScenarioEventEndRou
 
 #ifdef REGAMEDLL_ADD
 	if (roundEnded && !wasRoundTerminating && IsCombatReportRoundEndEvent(event))
-		ProcessCombatReports(true, false);
+		g_bCombatReportPending = true;
 #endif
 
 	return roundEnded;
@@ -1784,6 +1788,7 @@ void EXT_FUNC CHalfLifeMultiplay::__API_HOOK(RestartRound)()
 	}
 
 #ifdef REGAMEDLL_ADD
+	g_bCombatReportPending = false;
 	ProcessCombatReports(false, true);
 #endif
 
@@ -2500,6 +2505,14 @@ LINK_HOOK_CLASS_VOID_CUSTOM_CHAIN2(CHalfLifeMultiplay, CSGameRules, Think)
 
 void EXT_FUNC CHalfLifeMultiplay::__API_HOOK(Think)()
 {
+#ifdef REGAMEDLL_ADD
+	if (g_bCombatReportPending)
+	{
+		g_bCombatReportPending = false;
+		ProcessCombatReports(true, false);
+	}
+#endif
+
 	MonitorTutorStatus();
 	m_VoiceGameMgr.Update(gpGlobals->frametime);
 
