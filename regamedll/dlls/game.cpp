@@ -1,4 +1,5 @@
 #include "precompiled.h"
+#include "version/appversion.h"
 
 cvar_t *g_pskill          = nullptr;
 cvar_t *g_psv_gravity     = nullptr;
