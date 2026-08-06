@@ -663,6 +663,15 @@ static void PrepareCombatReportRecord(CCSPlayer::CCombatReportRecord_t &record, 
 	Q_strlcpy(record.name, STRING(pOpponent->pev->netname));
 }
 
+static bool AppendCombatReportText(char *report, size_t reportSize, const char *text)
+{
+	if (Q_strlen(report) + Q_strlen(text) + Q_strlen("...\n") >= reportSize)
+		return false;
+
+	Q_strlcat(report, text, reportSize);
+	return true;
+}
+
 void CCSPlayer::RecordCombatDamage(CBasePlayer *pAttacker, int damage)
 {
 	CBasePlayer *pVictim = BasePlayer();
@@ -703,31 +712,64 @@ void CCSPlayer::PrintCombatReport() const
 	CBasePlayer *pPlayer = BasePlayer();
 	char report[512];
 	Q_snprintf(report, sizeof(report), "COMBAT REPORT\n\n");
-	bool hasCombat = false;
+	bool hasAttackers = false;
+	bool hasVictims = false;
 
 	for (int i = 0; i < m_CombatReportList.Count(); i++)
 	{
 		const CCombatReportRecord_t &record = m_CombatReportList[i];
-		if (record.hitsDealt == 0 && record.hitsReceived == 0)
-			continue;
-
-		hasCombat = true;
-
-		char line[128];
-		Q_snprintf(line, sizeof(line), "%s: OUT %d hit(s), %d dmg | IN %d hit(s), %d dmg\n",
-			record.name, record.hitsDealt, record.damageDealt,
-			record.hitsReceived, record.damageReceived);
-
-		if (Q_strlen(report) + Q_strlen(line) + Q_strlen("...\n") >= sizeof(report))
-		{
-			Q_strlcat(report, "...\n");
-			break;
-		}
-
-		Q_strlcat(report, line);
+		hasAttackers |= (record.hitsReceived > 0);
+		hasVictims |= (record.hitsDealt > 0);
 	}
 
-	if (!hasCombat)
+	bool truncated = false;
+	if (hasAttackers)
+	{
+		AppendCombatReportText(report, sizeof(report), "ATTACKERS:\n");
+
+		for (int i = 0; i < m_CombatReportList.Count(); i++)
+		{
+			const CCombatReportRecord_t &record = m_CombatReportList[i];
+			if (record.hitsReceived == 0)
+				continue;
+
+			char line[96];
+			Q_snprintf(line, sizeof(line), "%s -- %d hit(s), %d dmg\n",
+				record.name, record.hitsReceived, record.damageReceived);
+
+			if (!AppendCombatReportText(report, sizeof(report), line))
+			{
+				truncated = true;
+				break;
+			}
+		}
+	}
+
+	if (hasVictims && !truncated)
+	{
+		AppendCombatReportText(report, sizeof(report), hasAttackers ? "\nVICTIMS:\n" : "VICTIMS:\n");
+
+		for (int i = 0; i < m_CombatReportList.Count(); i++)
+		{
+			const CCombatReportRecord_t &record = m_CombatReportList[i];
+			if (record.hitsDealt == 0)
+				continue;
+
+			char line[96];
+			Q_snprintf(line, sizeof(line), "%s -- %d hit(s), %d dmg\n",
+				record.name, record.hitsDealt, record.damageDealt);
+
+			if (!AppendCombatReportText(report, sizeof(report), line))
+			{
+				truncated = true;
+				break;
+			}
+		}
+	}
+
+	if (truncated)
+		Q_strlcat(report, "...\n");
+	else if (!hasAttackers && !hasVictims)
 		Q_strlcat(report, "No enemy damage dealt or received.\n");
 
 	hudtextparms_t textParms = {};
