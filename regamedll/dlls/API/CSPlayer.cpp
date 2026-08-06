@@ -701,6 +701,8 @@ void CCSPlayer::PrintCombatReport() const
 		return;
 
 	CBasePlayer *pPlayer = BasePlayer();
+	char report[512];
+	Q_snprintf(report, sizeof(report), "COMBAT REPORT\nOUT hits/dmg | IN hits/dmg\n\n");
 	bool hasCombat = false;
 
 	for (int i = 0; i < m_CombatReportList.Count(); i++)
@@ -709,22 +711,43 @@ void CCSPlayer::PrintCombatReport() const
 		if (record.hitsDealt == 0 && record.hitsReceived == 0)
 			continue;
 
-		char outgoing[64];
-		char incoming[64];
-		Q_snprintf(outgoing, sizeof(outgoing), "%d hits / %d dmg", record.hitsDealt, record.damageDealt);
-		Q_snprintf(incoming, sizeof(incoming), "%d hits / %d dmg", record.hitsReceived, record.damageReceived);
-
-		ClientPrint(pPlayer->pev, HUD_PRINTTALK,
-			"\x04" "[Combat Report] " "\x01" "%s1: OUT %s2 | IN %s3",
-			record.name, outgoing, incoming);
 		hasCombat = true;
+
+		char line[128];
+		Q_snprintf(line, sizeof(line), "%s: OUT %d/%d | IN %d/%d\n",
+			record.name, record.hitsDealt, record.damageDealt,
+			record.hitsReceived, record.damageReceived);
+
+		if (Q_strlen(report) + Q_strlen(line) + Q_strlen("...\n") >= sizeof(report))
+		{
+			Q_strlcat(report, "...\n");
+			break;
+		}
+
+		Q_strlcat(report, line);
 	}
 
 	if (!hasCombat)
-	{
-		ClientPrint(pPlayer->pev, HUD_PRINTTALK,
-			"\x04" "[Combat Report] " "\x01" "No enemy damage dealt or received.");
-	}
+		Q_strlcat(report, "No enemy damage dealt or received.\n");
+
+	hudtextparms_t textParms = {};
+	textParms.x = 0.05f;
+	textParms.y = 0.55f;
+	textParms.effect = 0;
+	textParms.r1 = 100;
+	textParms.g1 = 200;
+	textParms.b1 = 0;
+	textParms.a1 = 255;
+	textParms.r2 = 255;
+	textParms.g2 = 255;
+	textParms.b2 = 255;
+	textParms.a2 = 255;
+	textParms.fadeinTime = 0.02f;
+	textParms.fadeoutTime = 1.0f;
+	textParms.holdTime = 12.0f;
+	textParms.channel = 1;
+
+	UTIL_HudMessage(pPlayer, textParms, report);
 }
 
 #endif // REGAMEDLL_ADD
