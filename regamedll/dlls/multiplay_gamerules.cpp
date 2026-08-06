@@ -1056,9 +1056,31 @@ void CHalfLifeMultiplay::InitializePlayerCounts(int &NumAliveTerrorist, int &Num
 	}
 }
 
+#ifdef REGAMEDLL_ADD
+
+static void ProcessCombatReports(bool displayReports, bool resetReports);
+
+static bool IsCombatReportRoundEndEvent(ScenarioEventEndRound event)
+{
+	return event >= ROUND_TARGET_BOMB && event <= ROUND_VIP_NOT_ESCAPED;
+}
+
+#endif
+
 bool CHalfLifeMultiplay::OnRoundEnd_Intercept(int winStatus, ScenarioEventEndRound event, float tmDelay)
 {
-	return g_ReGameHookchains.m_RoundEnd.callChain(&CHalfLifeMultiplay::OnRoundEnd, this, winStatus, event, tmDelay);
+#ifdef REGAMEDLL_ADD
+	const bool wasRoundTerminating = m_bRoundTerminating;
+#endif
+
+	const bool roundEnded = g_ReGameHookchains.m_RoundEnd.callChain(&CHalfLifeMultiplay::OnRoundEnd, this, winStatus, event, tmDelay);
+
+#ifdef REGAMEDLL_ADD
+	if (roundEnded && !wasRoundTerminating && IsCombatReportRoundEndEvent(event))
+		ProcessCombatReports(true, false);
+#endif
+
+	return roundEnded;
 }
 
 bool EXT_FUNC CHalfLifeMultiplay::OnRoundEnd(int winStatus, ScenarioEventEndRound event, float tmDelay)
@@ -1723,7 +1745,7 @@ void EXT_FUNC CHalfLifeMultiplay::__API_HOOK(CheckMapConditions)()
 
 #ifdef REGAMEDLL_ADD
 
-static void ProcessCombatReports(bool displayReports)
+static void ProcessCombatReports(bool displayReports, bool resetReports)
 {
 	for (int i = 1; i <= gpGlobals->maxClients; i++)
 	{
@@ -1735,7 +1757,8 @@ static void ProcessCombatReports(bool displayReports)
 		if (displayReports && combat_report.value > 0.0f && !pPlayer->IsBot())
 			pCSPlayer->PrintCombatReport();
 
-		pCSPlayer->ResetCombatReport();
+		if (resetReports)
+			pCSPlayer->ResetCombatReport();
 	}
 }
 
@@ -1761,7 +1784,7 @@ void EXT_FUNC CHalfLifeMultiplay::__API_HOOK(RestartRound)()
 	}
 
 #ifdef REGAMEDLL_ADD
-	ProcessCombatReports(!m_bCompleteReset);
+	ProcessCombatReports(false, true);
 #endif
 
 #ifdef REGAMEDLL_FIXES
