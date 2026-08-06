@@ -560,6 +560,10 @@ void CCSPlayer::ResetVars()
 	m_bAutoBunnyHopping = false;
 	m_bMegaBunnyJumping = false;
 	m_bSpawnProtectionEffects = false;
+
+#ifdef REGAMEDLL_ADD
+	m_bCombatReportParticipant = false;
+#endif
 }
 
 // Resets all stats
@@ -573,6 +577,10 @@ void CCSPlayer::ResetAllStats()
 	}
 
 	m_DamageList.Clear();
+
+#ifdef REGAMEDLL_ADD
+	ResetCombatReport();
+#endif
 }
 
 void CCSPlayer::OnSpawn()
@@ -580,6 +588,12 @@ void CCSPlayer::OnSpawn()
 	m_bGameForcingRespawn = false;
 	m_flRespawnPending = 0.0f;
 	m_DamageList.Clear();
+
+#ifdef REGAMEDLL_ADD
+	CBasePlayer *pPlayer = BasePlayer();
+	if (combat_report.value > 0.0f && (pPlayer->m_iTeam == TERRORIST || pPlayer->m_iTeam == CT))
+		m_bCombatReportParticipant = true;
+#endif
 }
 
 void CCSPlayer::OnKilled()
@@ -628,3 +642,89 @@ void CCSPlayer::RecordDamage(CBasePlayer *pAttacker, float flDamage, float flFla
 	if (flFlashDurationTime > 0)
 		record.flFlashDurationTime = gpGlobals->time + flFlashDurationTime;
 }
+
+#ifdef REGAMEDLL_ADD
+
+void CCSPlayer::ResetCombatReport()
+{
+	m_CombatReportList.Clear();
+	m_bCombatReportParticipant = false;
+}
+
+static void PrepareCombatReportRecord(CCSPlayer::CCombatReportRecord_t &record, CBasePlayer *pOpponent)
+{
+	const int userId = pOpponent->CSPlayer()->m_iUserID;
+	if (record.userId != userId)
+	{
+		record = CCSPlayer::CCombatReportRecord_t();
+		record.userId = userId;
+	}
+
+	Q_strlcpy(record.name, STRING(pOpponent->pev->netname));
+}
+
+void CCSPlayer::RecordCombatDamage(CBasePlayer *pAttacker, int damage)
+{
+	CBasePlayer *pVictim = BasePlayer();
+	if (combat_report.value <= 0.0f || damage <= 0 || !pAttacker || !pAttacker->IsPlayer() || pAttacker == pVictim)
+		return;
+
+	if ((pVictim->m_iTeam != TERRORIST && pVictim->m_iTeam != CT) ||
+		(pAttacker->m_iTeam != TERRORIST && pAttacker->m_iTeam != CT))
+		return;
+
+	if (CSGameRules()->PlayerRelationship(pVictim, pAttacker) == GR_TEAMMATE)
+		return;
+
+	const int attackerIndex = pAttacker->entindex() - 1;
+	const int victimIndex = pVictim->entindex() - 1;
+	if (attackerIndex < 0 || attackerIndex >= MAX_CLIENTS || victimIndex < 0 || victimIndex >= MAX_CLIENTS)
+		return;
+
+	CCombatReportRecord_t &receivedRecord = m_CombatReportList[attackerIndex];
+	PrepareCombatReportRecord(receivedRecord, pAttacker);
+	receivedRecord.hitsReceived++;
+	receivedRecord.damageReceived += damage;
+	m_bCombatReportParticipant = true;
+
+	CCSPlayer *pCSAttacker = pAttacker->CSPlayer();
+	CCombatReportRecord_t &dealtRecord = pCSAttacker->m_CombatReportList[victimIndex];
+	PrepareCombatReportRecord(dealtRecord, pVictim);
+	dealtRecord.hitsDealt++;
+	dealtRecord.damageDealt += damage;
+	pCSAttacker->m_bCombatReportParticipant = true;
+}
+
+void CCSPlayer::PrintCombatReport() const
+{
+	if (!m_bCombatReportParticipant)
+		return;
+
+	CBasePlayer *pPlayer = BasePlayer();
+	bool hasCombat = false;
+
+	for (int i = 0; i < m_CombatReportList.Count(); i++)
+	{
+		const CCombatReportRecord_t &record = m_CombatReportList[i];
+		if (record.hitsDealt == 0 && record.hitsReceived == 0)
+			continue;
+
+		char outgoing[64];
+		char incoming[64];
+		Q_snprintf(outgoing, sizeof(outgoing), "%d hits / %d dmg", record.hitsDealt, record.damageDealt);
+		Q_snprintf(incoming, sizeof(incoming), "%d hits / %d dmg", record.hitsReceived, record.damageReceived);
+
+		ClientPrint(pPlayer->pev, HUD_PRINTTALK,
+			"\x04" "[Combat Report] " "\x01" "%s1: OUT %s2 | IN %s3",
+			record.name, outgoing, incoming);
+		hasCombat = true;
+	}
+
+	if (!hasCombat)
+	{
+		ClientPrint(pPlayer->pev, HUD_PRINTTALK,
+			"\x04" "[Combat Report] " "\x01" "No enemy damage dealt or received.");
+	}
+}
+
+#endif // REGAMEDLL_ADD

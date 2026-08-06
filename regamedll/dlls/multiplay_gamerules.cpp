@@ -1721,6 +1721,26 @@ void EXT_FUNC CHalfLifeMultiplay::__API_HOOK(CheckMapConditions)()
 	m_bMapHasVIPSafetyZone = (UTIL_FindEntityByClassname(nullptr, "func_vip_safetyzone") != nullptr);
 }
 
+#ifdef REGAMEDLL_ADD
+
+static void ProcessCombatReports(bool displayReports)
+{
+	for (int i = 1; i <= gpGlobals->maxClients; i++)
+	{
+		CBasePlayer *pPlayer = UTIL_PlayerByIndex(i);
+		if (!UTIL_IsValidPlayer(pPlayer))
+			continue;
+
+		CCSPlayer *pCSPlayer = pPlayer->CSPlayer();
+		if (displayReports && combat_report.value > 0.0f && !pPlayer->IsBot())
+			pCSPlayer->PrintCombatReport();
+
+		pCSPlayer->ResetCombatReport();
+	}
+}
+
+#endif
+
 LINK_HOOK_CLASS_VOID_CUSTOM_CHAIN2(CHalfLifeMultiplay, CSGameRules, RestartRound)
 
 void EXT_FUNC CHalfLifeMultiplay::__API_HOOK(RestartRound)()
@@ -1739,6 +1759,10 @@ void EXT_FUNC CHalfLifeMultiplay::__API_HOOK(RestartRound)()
 	{
 		g_pHostages->RestartRound();
 	}
+
+#ifdef REGAMEDLL_ADD
+	ProcessCombatReports(!m_bCompleteReset);
+#endif
 
 #ifdef REGAMEDLL_FIXES
 	if (!m_bCompleteReset)
