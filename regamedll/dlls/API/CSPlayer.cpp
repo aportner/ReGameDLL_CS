@@ -785,13 +785,6 @@ void CCSPlayer::PrintCombatReport() const
 		textParms.channel = 2;
 		UTIL_HudMessage(pPlayer, textParms, victims);
 	}
-
-	if (!hasAttackers && !hasVictims)
-	{
-		textParms.y = 0.55f;
-		textParms.channel = 1;
-		UTIL_HudMessage(pPlayer, textParms, "COMBAT REPORT\n\nNo enemy damage dealt or received.");
-	}
 }
 
 #endif // REGAMEDLL_ADD
