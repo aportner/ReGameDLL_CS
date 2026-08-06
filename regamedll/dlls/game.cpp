@@ -239,6 +239,39 @@ void GameDLL_EndRound_f()
 	CSGameRules()->OnRoundEnd_Intercept(WINSTATUS_DRAW, ROUND_END_DRAW, CSGameRules()->GetRoundRestartDelay());
 }
 
+const int MAX_TEAM_SCORE = 100;
+
+void GameDLL_SetScore_f()
+{
+	if (CMD_ARGC() != 3)
+	{
+		CONSOLE_ECHO("Usage: setscore <ct_score> <t_score> (scores must be integers from 0 to %d)\n", MAX_TEAM_SCORE);
+		return;
+	}
+
+	const int ctScore = Q_atoi(CMD_ARGV(1));
+	const int terroristScore = Q_atoi(CMD_ARGV(2));
+	if (ctScore < 0 || ctScore > MAX_TEAM_SCORE || terroristScore < 0 || terroristScore > MAX_TEAM_SCORE)
+	{
+		CONSOLE_ECHO("setscore: scores must be between 0 and %d\n", MAX_TEAM_SCORE);
+		return;
+	}
+
+	CHalfLifeMultiplay *gameRules = CSGameRules();
+	const int oldCTScore = gameRules->m_iNumCTWins;
+	const int oldTerroristScore = gameRules->m_iNumTerroristWins;
+
+	gameRules->m_iNumCTWins = ctScore;
+	gameRules->m_iNumTerroristWins = terroristScore;
+	gameRules->m_iTotalRoundsPlayed = ctScore + terroristScore;
+	gameRules->UpdateTeamScores();
+
+	CONSOLE_ECHO("setscore: CT %d, TERRORIST %d (was CT %d, TERRORIST %d)\n",
+		ctScore, terroristScore, oldCTScore, oldTerroristScore);
+	UTIL_LogPrintf("World triggered \"Set_Score\" (CT \"%d\") (T \"%d\") (Old_CT \"%d\") (Old_T \"%d\")\n",
+		ctScore, terroristScore, oldCTScore, oldTerroristScore);
+}
+
 void GameDLL_SwapTeams_f()
 {
 	CSGameRules()->SwapAllPlayers();
@@ -389,6 +422,7 @@ void EXT_FUNC GameDLLInit()
 
 	ADD_SERVER_COMMAND("game", GameDLL_Version_f);
 	ADD_SERVER_COMMAND("endround", GameDLL_EndRound_f);
+	ADD_SERVER_COMMAND("setscore", GameDLL_SetScore_f);
 	ADD_SERVER_COMMAND("swapteams", GameDLL_SwapTeams_f);
 
 	CVAR_REGISTER(&game_version);
