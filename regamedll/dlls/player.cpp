@@ -1043,7 +1043,8 @@ BOOL EXT_FUNC CBasePlayer::__API_HOOK(TakeDamage)(entvars_t *pevInflictor, entva
 		bTookDamage = CBaseMonster::TakeDamage(pevInflictor, pevAttacker, int(flDamage), bitsDamageType);
 
 #ifdef REGAMEDLL_ADD
-		CSPlayer()->RecordCombatDamage(pAttack, int(flHealthBeforeDamage - Q_max(pev->health, 0.0f)));
+		if (flHealthBeforeDamage > Q_max(pev->health, 0.0f))
+			CSPlayer()->RecordCombatDamage(pAttack, int(flDamage));
 #endif
 
 		if (bTookDamage)
@@ -1306,7 +1307,8 @@ BOOL EXT_FUNC CBasePlayer::__API_HOOK(TakeDamage)(entvars_t *pevInflictor, entva
 	bTookDamage = CBaseMonster::TakeDamage(pevInflictor, pevAttacker, int(flDamage), bitsDamageType);
 
 #ifdef REGAMEDLL_ADD
-	CSPlayer()->RecordCombatDamage(pAttack, int(flHealthBeforeDamage - Q_max(pev->health, 0.0f)));
+	if (flHealthBeforeDamage > Q_max(pev->health, 0.0f))
+		CSPlayer()->RecordCombatDamage(pAttack, int(flDamage));
 #endif
 
 	if (bTookDamage)
