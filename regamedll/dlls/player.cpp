@@ -1044,7 +1044,11 @@ BOOL EXT_FUNC CBasePlayer::__API_HOOK(TakeDamage)(entvars_t *pevInflictor, entva
 
 #ifdef REGAMEDLL_ADD
 		if (flHealthBeforeDamage > Q_max(pev->health, 0.0f))
-			CSPlayer()->RecordCombatDamage(pAttack, int(flDamage));
+		{
+			const bool killed = flHealthBeforeDamage > 0.0f && pev->health <= 0.0f;
+			CSPlayer()->RecordCombatDamage(pAttack, int(flDamage), killed,
+				killed && m_bHeadshotKilled, killed ? GetKillerWeaponName(pevInflictor, pevAttacker) : nullptr);
+		}
 #endif
 
 		if (bTookDamage)
@@ -1308,7 +1312,11 @@ BOOL EXT_FUNC CBasePlayer::__API_HOOK(TakeDamage)(entvars_t *pevInflictor, entva
 
 #ifdef REGAMEDLL_ADD
 	if (flHealthBeforeDamage > Q_max(pev->health, 0.0f))
-		CSPlayer()->RecordCombatDamage(pAttack, int(flDamage));
+	{
+		const bool killed = flHealthBeforeDamage > 0.0f && pev->health <= 0.0f;
+		CSPlayer()->RecordCombatDamage(pAttack, int(flDamage), killed,
+			killed && m_bHeadshotKilled, killed ? GetKillerWeaponName(pevInflictor, pevAttacker) : nullptr);
+	}
 #endif
 
 	if (bTookDamage)

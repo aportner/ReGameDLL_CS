@@ -672,7 +672,24 @@ static bool AppendCombatReportText(char *report, size_t reportSize, const char *
 	return true;
 }
 
-void CCSPlayer::RecordCombatDamage(CBasePlayer *pAttacker, int damage)
+static void FormatCombatReportLine(char *line, size_t lineSize, const char *name, int hits, int damage,
+	int kills, int headshotKills, const char *lastKillWeapon)
+{
+	Q_snprintf(line, lineSize, "%s -- %d hit(s), %d dmg", name, hits, damage);
+
+	if (kills > 0)
+	{
+		Q_strlcat(line, " / ", lineSize);
+		Q_strlcat(line, lastKillWeapon[0] ? lastKillWeapon : "unknown", lineSize);
+
+		if (headshotKills > 0)
+			Q_strlcat(line, " / HS", lineSize);
+	}
+
+	Q_strlcat(line, "\n", lineSize);
+}
+
+void CCSPlayer::RecordCombatDamage(CBasePlayer *pAttacker, int damage, bool killed, bool headshotKill, const char *killWeapon)
 {
 	CBasePlayer *pVictim = BasePlayer();
 	if (combat_report.value <= 0.0f || damage <= 0 || !pAttacker || !pAttacker->IsPlayer() || pAttacker == pVictim)
@@ -694,6 +711,12 @@ void CCSPlayer::RecordCombatDamage(CBasePlayer *pAttacker, int damage)
 	PrepareCombatReportRecord(receivedRecord, pAttacker);
 	receivedRecord.hitsReceived++;
 	receivedRecord.damageReceived += damage;
+	if (killed)
+	{
+		receivedRecord.killsReceived++;
+		receivedRecord.headshotKillsReceived += headshotKill ? 1 : 0;
+		Q_strlcpy(receivedRecord.lastKillWeaponReceived, killWeapon ? killWeapon : "unknown");
+	}
 	m_bCombatReportParticipant = true;
 
 	CCSPlayer *pCSAttacker = pAttacker->CSPlayer();
@@ -701,6 +724,12 @@ void CCSPlayer::RecordCombatDamage(CBasePlayer *pAttacker, int damage)
 	PrepareCombatReportRecord(dealtRecord, pVictim);
 	dealtRecord.hitsDealt++;
 	dealtRecord.damageDealt += damage;
+	if (killed)
+	{
+		dealtRecord.killsDealt++;
+		dealtRecord.headshotKillsDealt += headshotKill ? 1 : 0;
+		Q_strlcpy(dealtRecord.lastKillWeaponDealt, killWeapon ? killWeapon : "unknown");
+	}
 	pCSAttacker->m_bCombatReportParticipant = true;
 }
 
@@ -727,9 +756,10 @@ void CCSPlayer::PrintCombatReport() const
 			hasAttackers = true;
 			if (!attackersTruncated)
 			{
-				char line[96];
-				Q_snprintf(line, sizeof(line), "%s -- %d hit(s), %d dmg\n",
-					record.name, record.hitsReceived, record.damageReceived);
+				char line[128];
+				FormatCombatReportLine(line, sizeof(line), record.name, record.hitsReceived,
+					record.damageReceived, record.killsReceived, record.headshotKillsReceived,
+					record.lastKillWeaponReceived);
 
 				if (!AppendCombatReportText(attackers, sizeof(attackers), line))
 				{
@@ -744,9 +774,10 @@ void CCSPlayer::PrintCombatReport() const
 			hasVictims = true;
 			if (!victimsTruncated)
 			{
-				char line[96];
-				Q_snprintf(line, sizeof(line), "%s -- %d hit(s), %d dmg\n",
-					record.name, record.hitsDealt, record.damageDealt);
+				char line[128];
+				FormatCombatReportLine(line, sizeof(line), record.name, record.hitsDealt,
+					record.damageDealt, record.killsDealt, record.headshotKillsDealt,
+					record.lastKillWeaponDealt);
 
 				if (!AppendCombatReportText(victims, sizeof(victims), line))
 				{

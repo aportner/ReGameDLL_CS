@@ -194,15 +194,21 @@ public:
 		char name[32] = {};
 		int hitsDealt = 0;
 		int damageDealt = 0;
+		int killsDealt = 0;
+		int headshotKillsDealt = 0;
+		char lastKillWeaponDealt[32] = {};
 		int hitsReceived = 0;
 		int damageReceived = 0;
+		int killsReceived = 0;
+		int headshotKillsReceived = 0;
+		char lastKillWeaponReceived[32] = {};
 	};
 	using CombatReportList_t = CUtlArray<CCombatReportRecord_t, MAX_CLIENTS>;
 	CombatReportList_t m_CombatReportList;
 	bool m_bCombatReportParticipant;
 
 	void ResetCombatReport();
-	void RecordCombatDamage(CBasePlayer *pAttacker, int damage);
+	void RecordCombatDamage(CBasePlayer *pAttacker, int damage, bool killed, bool headshotKill, const char *killWeapon);
 	void PrintCombatReport() const;
 #endif
 
