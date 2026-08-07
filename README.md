@@ -129,6 +129,7 @@ This means that plugins that do binary code analysis (Orpheu for example) probab
 | mp_legacy_vehicle_block            | 1       | 0   | 1            | Legacy func_vehicle behavior when blocked by another entity.<br/>`0` New behavior <br/>`1` Legacy behavior |
 | mp_dying_time                      | 3.0     | 0.0 | -            | Time for switch to free observing after death.<br/>`0` - disable spectating around death.<br/>`>0.00001` - time delay to start spectate.<br/>`NOTE`: The countdown starts when the player’s death animation is finished. |
 | mp_deathmsg_flags                  | abc     | 0   | -            | Sets a flags for extra information in the player's death message.<br/>`0` disabled<br/>`a` position where the victim died<br/>`b` index of the assistant who helped the attacker kill the victim<br/>`c` rarity classification bits, e.g., `blinkill`, `noscope`, `penetrated`, etc. |
+| mp_round_kill_sounds               | 1       | 0   | 1            | Plays a private sound to the killer based on their number of enemy kills during the current round. The fifth sound is reused for subsequent kills. |
 | mp_assist_damage_threshold         | 40      | 0   | 100          | Sets the percentage of damage needed to score an assist. |
 | mp_freezetime_duck                 | 1       | 0   | 1            | Allow players to duck during freezetime.<br/> `0` disabled<br/>`1` enabled |
 | mp_freezetime_jump                 | 1       | 0   | 1            | Allow players to jump during freezetime.<br/> `0` disabled<br/>`1` enabled |

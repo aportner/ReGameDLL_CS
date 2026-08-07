@@ -173,6 +173,7 @@ cvar_t sv_enablebunnyhopping             = { "sv_enablebunnyhopping", "0", 0, 0.
 cvar_t plant_c4_anywhere                 = { "mp_plant_c4_anywhere", "0", 0, 0.0f, nullptr };
 cvar_t give_c4_frags                     = { "mp_give_c4_frags", "3", 0, 3.0f, nullptr };
 cvar_t deathmsg_flags                    = { "mp_deathmsg_flags", "abc", 0, 0.0f, nullptr };
+cvar_t round_kill_sounds                 = { "mp_round_kill_sounds", "1", 0, 1.0f, nullptr };
 cvar_t assist_damage_threshold           = { "mp_assist_damage_threshold", "40", 0, 40.0f, nullptr };
 cvar_t freezetime_duck                   = { "mp_freezetime_duck", "1", 0, 1.0f, nullptr };
 cvar_t freezetime_jump                   = { "mp_freezetime_jump", "1", 0, 1.0f, nullptr };
@@ -503,6 +504,7 @@ void EXT_FUNC GameDLLInit()
 
 	CVAR_REGISTER(&dying_time);
 	CVAR_REGISTER(&deathmsg_flags);
+	CVAR_REGISTER(&round_kill_sounds);
 	CVAR_REGISTER(&assist_damage_threshold);
 
 	CVAR_REGISTER(&freezetime_duck);

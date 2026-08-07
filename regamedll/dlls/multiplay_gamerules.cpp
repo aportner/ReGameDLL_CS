@@ -42,6 +42,9 @@ void PlayRoundKillSound(CBasePlayer *pKiller)
 	EMIT_SOUND_MSG(
 		pKiller->edict(), MSG_ONE, CHAN_ITEM, g_KillStreakSounds[soundIndex],
 		VOL_NORM, ATTN_NONE, 0, PITCH_NORM, pKiller->pev->origin, pKiller->edict());
+	EMIT_SOUND_MSG(
+		pKiller->edict(), MSG_ONE, CHAN_STATIC, g_KillStreakSounds[soundIndex],
+		VOL_NORM, ATTN_NONE, 0, PITCH_NORM, pKiller->pev->origin, pKiller->edict());
 }
 }
 #endif
@@ -4085,7 +4088,8 @@ void EXT_FUNC CHalfLifeMultiplay::__API_HOOK(PlayerKilled)(CBasePlayer *pVictim,
 			// if a player dies in a deathmatch game and the killer is a client, award the killer some points
 			pKiller->frags += IPointsForKill(peKiller, pVictim);
 #ifdef REGAMEDLL_ADD
-			PlayRoundKillSound(killer);
+			if (round_kill_sounds.value != 0.0f)
+				PlayRoundKillSound(killer);
 #endif
 
 			if (pVictim->m_bIsVIP)

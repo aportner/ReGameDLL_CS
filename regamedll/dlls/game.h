@@ -201,6 +201,7 @@ extern cvar_t hostages_rescued_ratio;
 extern cvar_t legacy_vehicle_block;
 extern cvar_t dying_time;
 extern cvar_t deathmsg_flags;
+extern cvar_t round_kill_sounds;
 extern cvar_t assist_damage_threshold;
 extern cvar_t freezetime_duck;
 extern cvar_t freezetime_jump;
