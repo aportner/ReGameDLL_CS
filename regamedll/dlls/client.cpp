@@ -4006,6 +4006,10 @@ void ClientPrecache()
 {
 	int i;
 
+#ifdef REGAMEDLL_ADD
+	PRECACHE_SOUND_ARRAY(g_KillStreakSounds);
+#endif
+
 	PRECACHE_SOUND("weapons/dryfire_pistol.wav");
 	PRECACHE_SOUND("weapons/dryfire_rifle.wav");
 	PRECACHE_SOUND("player/pl_shot1.wav");

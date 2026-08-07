@@ -38,6 +38,11 @@ const int MAX_SENTENCE_DPV_RESET = 27;		// Max number of dynamic pitch volumes
 const float MAX_ANNOUNCE_MINS    = 2.25f;
 const float MIN_ANNOUNCE_MINS    = 0.25f;
 
+#ifdef REGAMEDLL_ADD
+const int KILL_STREAK_SOUND_COUNT = 5;
+extern const char *const g_KillStreakSounds[KILL_STREAK_SOUND_COUNT];
+#endif
+
 enum
 {
 	LFO_OFF = 0,
