@@ -1287,6 +1287,33 @@ static void SendRecoilVisualizationBeam(CBasePlayer *pShooter, const Vector &vec
 	MESSAGE_END();
 }
 
+static void SendRecoilVisualizationTracer(CBasePlayer *pShooter, const Vector &vecStart, const Vector &vecEnd, int color)
+{
+	Vector vecDelta = vecEnd - vecStart;
+	const float distance = vecDelta.Length();
+	if (distance <= 0.0f)
+		return;
+
+	const float tracerSpeed = 6000.0f;
+	const Vector vecVelocity = vecDelta.Normalize() * tracerSpeed;
+	int life = int(distance / (tracerSpeed * 0.1f)) + 1;
+	if (life > 255)
+		life = 255;
+
+	MESSAGE_BEGIN(MSG_ONE_UNRELIABLE, SVC_TEMPENTITY, nullptr, pShooter->edict());
+		WRITE_BYTE(TE_USERTRACER);
+		WRITE_COORD(vecStart.x);
+		WRITE_COORD(vecStart.y);
+		WRITE_COORD(vecStart.z);
+		WRITE_COORD(vecVelocity.x);
+		WRITE_COORD(vecVelocity.y);
+		WRITE_COORD(vecVelocity.z);
+		WRITE_BYTE(life);  // lifetime in tenths of a second
+		WRITE_BYTE(color); // engine tracer color index
+		WRITE_BYTE(8);     // 0.8 length factor
+	MESSAGE_END();
+}
+
 static void ShowRecoilVisualization(entvars_t *pevAttacker, const Vector &vecSrc, const TraceResult &tr)
 {
 	int mode = int(recoil_visualization.value);
@@ -1329,14 +1356,9 @@ static void ShowRecoilVisualization(entvars_t *pevAttacker, const Vector &vecSrc
 
 	if (mode >= 2)
 	{
-		Vector vecTracerDelta = tr.vecEndPos - vecSrc;
-		const float tracerDistance = vecTracerDelta.Length();
-		if (tracerDistance > 0.0f)
-		{
-			const float tracerLength = Q_min(tracerDistance, 96.0f);
-			const Vector vecTracerStart = tr.vecEndPos - vecTracerDelta.Normalize() * tracerLength;
-			SendRecoilVisualizationBeam(pShooter, vecTracerStart, tr.vecEndPos, red, green, blue, 2, 6, 200);
-		}
+		const Vector vecTracerSrc = vecSrc + Vector(0, 0, -4) + gpGlobals->v_right * 2 + gpGlobals->v_forward * 16;
+		const int tracerColor = (shot <= 5) ? 2 : ((shot <= 10) ? 5 : 1);
+		SendRecoilVisualizationTracer(pShooter, vecTracerSrc, tr.vecEndPos, tracerColor);
 	}
 
 	if (tr.flFraction == 1.0f)
