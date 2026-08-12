@@ -1039,7 +1039,17 @@ BOOL EXT_FUNC CBasePlayer::__API_HOOK(TakeDamage)(entvars_t *pevInflictor, entva
 		}
 
 		LogAttack(pAttack, this, bTeamAttack, int(flDamage), armorHit, pev->health - flDamage, pev->armorvalue, GetKillerWeaponName(pevInflictor, pevAttacker));
+		const float flHealthBeforeDamage = pev->health;
 		bTookDamage = CBaseMonster::TakeDamage(pevInflictor, pevAttacker, int(flDamage), bitsDamageType);
+
+#ifdef REGAMEDLL_ADD
+		if (flHealthBeforeDamage > Q_max(pev->health, 0.0f))
+		{
+			const bool killed = flHealthBeforeDamage > 0.0f && pev->health <= 0.0f;
+			CSPlayer()->RecordCombatDamage(pAttack, int(flDamage), killed,
+				killed && m_bHeadshotKilled, killed ? GetKillerWeaponName(pevInflictor, pevAttacker) : nullptr);
+		}
+#endif
 
 		if (bTookDamage)
 		{
@@ -1297,7 +1307,17 @@ BOOL EXT_FUNC CBasePlayer::__API_HOOK(TakeDamage)(entvars_t *pevInflictor, entva
 
 	// this cast to INT is critical!!! If a player ends up with 0.5 health, the engine will get that
 	// as an int (zero) and think the player is dead! (this will incite a clientside screentilt, etc)
+	const float flHealthBeforeDamage = pev->health;
 	bTookDamage = CBaseMonster::TakeDamage(pevInflictor, pevAttacker, int(flDamage), bitsDamageType);
+
+#ifdef REGAMEDLL_ADD
+	if (flHealthBeforeDamage > Q_max(pev->health, 0.0f))
+	{
+		const bool killed = flHealthBeforeDamage > 0.0f && pev->health <= 0.0f;
+		CSPlayer()->RecordCombatDamage(pAttack, int(flDamage), killed,
+			killed && m_bHeadshotKilled, killed ? GetKillerWeaponName(pevInflictor, pevAttacker) : nullptr);
+	}
+#endif
 
 	if (bTookDamage)
 	{

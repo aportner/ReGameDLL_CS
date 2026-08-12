@@ -57,6 +57,9 @@ public:
 		m_flLongJumpForce(0),
 		m_flDuckSpeedMultiplier(0),
 		m_iUserID(-1),
+#ifdef REGAMEDLL_ADD
+		m_bCombatReportParticipant(false),
+#endif
 		m_iGibDamageThreshold(GIB_PLAYER_THRESHOLD)
 	{
 		m_szModel[0] = '\0';
@@ -183,6 +186,32 @@ public:
 	DamageList_t m_DamageList; // A unified array of recorded damage that includes giver and taker in each entry
 	DamageList_t &GetDamageList() { return m_DamageList; }
 	void RecordDamage(CBasePlayer *pAttacker, float flDamage, float flFlashDurationTime = -1);
+
+#ifdef REGAMEDLL_ADD
+	struct CCombatReportRecord_t
+	{
+		int userId = 0;
+		char name[32] = {};
+		int hitsDealt = 0;
+		int damageDealt = 0;
+		int killsDealt = 0;
+		int headshotKillsDealt = 0;
+		char lastKillWeaponDealt[32] = {};
+		int hitsReceived = 0;
+		int damageReceived = 0;
+		int killsReceived = 0;
+		int headshotKillsReceived = 0;
+		char lastKillWeaponReceived[32] = {};
+	};
+	using CombatReportList_t = CUtlArray<CCombatReportRecord_t, MAX_CLIENTS>;
+	CombatReportList_t m_CombatReportList;
+	bool m_bCombatReportParticipant;
+
+	void ResetCombatReport();
+	void RecordCombatDamage(CBasePlayer *pAttacker, int damage, bool killed, bool headshotKill, const char *killWeapon);
+	void PrintCombatReport() const;
+#endif
+
 	int m_iNumKilledByUnanswered[MAX_CLIENTS]; // [0-31] how many unanswered kills this player has been dealt by each other player
 	bool m_bPlayerDominated[MAX_CLIENTS]; // [0-31] array of state per other player whether player is dominating other players
 

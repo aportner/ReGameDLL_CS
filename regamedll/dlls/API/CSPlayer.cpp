@@ -560,6 +560,10 @@ void CCSPlayer::ResetVars()
 	m_bAutoBunnyHopping = false;
 	m_bMegaBunnyJumping = false;
 	m_bSpawnProtectionEffects = false;
+
+#ifdef REGAMEDLL_ADD
+	m_bCombatReportParticipant = false;
+#endif
 }
 
 // Resets all stats
@@ -573,6 +577,10 @@ void CCSPlayer::ResetAllStats()
 	}
 
 	m_DamageList.Clear();
+
+#ifdef REGAMEDLL_ADD
+	ResetCombatReport();
+#endif
 }
 
 void CCSPlayer::OnSpawn()
@@ -580,6 +588,12 @@ void CCSPlayer::OnSpawn()
 	m_bGameForcingRespawn = false;
 	m_flRespawnPending = 0.0f;
 	m_DamageList.Clear();
+
+#ifdef REGAMEDLL_ADD
+	CBasePlayer *pPlayer = BasePlayer();
+	if (combat_report.value > 0.0f && (pPlayer->m_iTeam == TERRORIST || pPlayer->m_iTeam == CT))
+		m_bCombatReportParticipant = true;
+#endif
 }
 
 void CCSPlayer::OnKilled()
@@ -628,3 +642,180 @@ void CCSPlayer::RecordDamage(CBasePlayer *pAttacker, float flDamage, float flFla
 	if (flFlashDurationTime > 0)
 		record.flFlashDurationTime = gpGlobals->time + flFlashDurationTime;
 }
+
+#ifdef REGAMEDLL_ADD
+
+void CCSPlayer::ResetCombatReport()
+{
+	m_CombatReportList.Clear();
+	m_bCombatReportParticipant = false;
+}
+
+static void PrepareCombatReportRecord(CCSPlayer::CCombatReportRecord_t &record, CBasePlayer *pOpponent)
+{
+	const int userId = pOpponent->CSPlayer()->m_iUserID;
+	if (record.userId != userId)
+	{
+		record = CCSPlayer::CCombatReportRecord_t();
+		record.userId = userId;
+	}
+
+	Q_strlcpy(record.name, STRING(pOpponent->pev->netname));
+}
+
+static bool AppendCombatReportText(char *report, size_t reportSize, const char *text)
+{
+	if (Q_strlen(report) + Q_strlen(text) + Q_strlen("...\n") >= reportSize)
+		return false;
+
+	Q_strlcat(report, text, reportSize);
+	return true;
+}
+
+static void FormatCombatReportLine(char *line, size_t lineSize, const char *name, int hits, int damage,
+	int kills, int headshotKills, const char *lastKillWeapon)
+{
+	Q_snprintf(line, lineSize, "%s -- %d hit(s), %d dmg", name, hits, damage);
+
+	if (kills > 0)
+	{
+		Q_strlcat(line, " / ", lineSize);
+		Q_strlcat(line, lastKillWeapon[0] ? lastKillWeapon : "unknown", lineSize);
+
+		if (headshotKills > 0)
+			Q_strlcat(line, " / HS", lineSize);
+	}
+
+	Q_strlcat(line, "\n", lineSize);
+}
+
+void CCSPlayer::RecordCombatDamage(CBasePlayer *pAttacker, int damage, bool killed, bool headshotKill, const char *killWeapon)
+{
+	CBasePlayer *pVictim = BasePlayer();
+	if (combat_report.value <= 0.0f || damage <= 0 || !pAttacker || !pAttacker->IsPlayer() || pAttacker == pVictim)
+		return;
+
+	if ((pVictim->m_iTeam != TERRORIST && pVictim->m_iTeam != CT) ||
+		(pAttacker->m_iTeam != TERRORIST && pAttacker->m_iTeam != CT))
+		return;
+
+	if (CSGameRules()->PlayerRelationship(pVictim, pAttacker) == GR_TEAMMATE)
+		return;
+
+	const int attackerIndex = pAttacker->entindex() - 1;
+	const int victimIndex = pVictim->entindex() - 1;
+	if (attackerIndex < 0 || attackerIndex >= MAX_CLIENTS || victimIndex < 0 || victimIndex >= MAX_CLIENTS)
+		return;
+
+	CCombatReportRecord_t &receivedRecord = m_CombatReportList[attackerIndex];
+	PrepareCombatReportRecord(receivedRecord, pAttacker);
+	receivedRecord.hitsReceived++;
+	receivedRecord.damageReceived += damage;
+	if (killed)
+	{
+		receivedRecord.killsReceived++;
+		receivedRecord.headshotKillsReceived += headshotKill ? 1 : 0;
+		Q_strlcpy(receivedRecord.lastKillWeaponReceived, killWeapon ? killWeapon : "unknown");
+	}
+	m_bCombatReportParticipant = true;
+
+	CCSPlayer *pCSAttacker = pAttacker->CSPlayer();
+	CCombatReportRecord_t &dealtRecord = pCSAttacker->m_CombatReportList[victimIndex];
+	PrepareCombatReportRecord(dealtRecord, pVictim);
+	dealtRecord.hitsDealt++;
+	dealtRecord.damageDealt += damage;
+	if (killed)
+	{
+		dealtRecord.killsDealt++;
+		dealtRecord.headshotKillsDealt += headshotKill ? 1 : 0;
+		Q_strlcpy(dealtRecord.lastKillWeaponDealt, killWeapon ? killWeapon : "unknown");
+	}
+	pCSAttacker->m_bCombatReportParticipant = true;
+}
+
+void CCSPlayer::PrintCombatReport() const
+{
+	if (!m_bCombatReportParticipant)
+		return;
+
+	CBasePlayer *pPlayer = BasePlayer();
+	char attackers[512];
+	char victims[512];
+	Q_snprintf(attackers, sizeof(attackers), "ATTACKERS:\n");
+	Q_snprintf(victims, sizeof(victims), "VICTIMS:\n");
+	bool hasAttackers = false;
+	bool hasVictims = false;
+	bool attackersTruncated = false;
+	bool victimsTruncated = false;
+
+	for (int i = 0; i < m_CombatReportList.Count(); i++)
+	{
+		const CCombatReportRecord_t &record = m_CombatReportList[i];
+		if (record.hitsReceived > 0)
+		{
+			hasAttackers = true;
+			if (!attackersTruncated)
+			{
+				char line[128];
+				FormatCombatReportLine(line, sizeof(line), record.name, record.hitsReceived,
+					record.damageReceived, record.killsReceived, record.headshotKillsReceived,
+					record.lastKillWeaponReceived);
+
+				if (!AppendCombatReportText(attackers, sizeof(attackers), line))
+				{
+					Q_strlcat(attackers, "...\n");
+					attackersTruncated = true;
+				}
+			}
+		}
+
+		if (record.hitsDealt > 0)
+		{
+			hasVictims = true;
+			if (!victimsTruncated)
+			{
+				char line[128];
+				FormatCombatReportLine(line, sizeof(line), record.name, record.hitsDealt,
+					record.damageDealt, record.killsDealt, record.headshotKillsDealt,
+					record.lastKillWeaponDealt);
+
+				if (!AppendCombatReportText(victims, sizeof(victims), line))
+				{
+					Q_strlcat(victims, "...\n");
+					victimsTruncated = true;
+				}
+			}
+		}
+	}
+
+	hudtextparms_t textParms = {};
+	textParms.x = 0.55f;
+	textParms.effect = 0;
+	textParms.r1 = 100;
+	textParms.g1 = 200;
+	textParms.b1 = 0;
+	textParms.a1 = 255;
+	textParms.r2 = 255;
+	textParms.g2 = 255;
+	textParms.b2 = 255;
+	textParms.a2 = 255;
+	textParms.fadeinTime = 0.02f;
+	textParms.fadeoutTime = 1.0f;
+	textParms.holdTime = 12.0f;
+
+	if (hasAttackers)
+	{
+		textParms.y = 0.35f;
+		textParms.channel = 1;
+		UTIL_HudMessage(pPlayer, textParms, attackers);
+	}
+
+	if (hasVictims)
+	{
+		textParms.y = 0.60f;
+		textParms.channel = 2;
+		UTIL_HudMessage(pPlayer, textParms, victims);
+	}
+}
+
+#endif // REGAMEDLL_ADD

@@ -49,6 +49,9 @@ void PlayRoundKillSound(CBasePlayer *pKiller)
 }
 #endif
 
+#ifdef REGAMEDLL_ADD
+static bool g_bCombatReportPending = false;
+#endif
 RewardAccount CHalfLifeMultiplay::m_rgRewardAccountRules[RR_END];
 RewardAccount CHalfLifeMultiplay::m_rgRewardAccountRules_default[] = {
 	REWARD_CTS_WIN,                         // RR_CTS_WIN
@@ -414,6 +417,7 @@ CHalfLifeMultiplay::CHalfLifeMultiplay()
 {
 #ifdef REGAMEDLL_ADD
 	ResetRoundKillCounts();
+	g_bCombatReportPending = false;
 #endif
 
 	m_bFreezePeriod = TRUE;
@@ -1056,9 +1060,31 @@ void CHalfLifeMultiplay::InitializePlayerCounts(int &NumAliveTerrorist, int &Num
 	}
 }
 
+#ifdef REGAMEDLL_ADD
+
+static void ProcessCombatReports(bool displayReports, bool resetReports);
+
+static bool IsCombatReportRoundEndEvent(ScenarioEventEndRound event)
+{
+	return event >= ROUND_TARGET_BOMB && event <= ROUND_VIP_NOT_ESCAPED;
+}
+
+#endif
+
 bool CHalfLifeMultiplay::OnRoundEnd_Intercept(int winStatus, ScenarioEventEndRound event, float tmDelay)
 {
-	return g_ReGameHookchains.m_RoundEnd.callChain(&CHalfLifeMultiplay::OnRoundEnd, this, winStatus, event, tmDelay);
+#ifdef REGAMEDLL_ADD
+	const bool wasRoundTerminating = m_bRoundTerminating;
+#endif
+
+	const bool roundEnded = g_ReGameHookchains.m_RoundEnd.callChain(&CHalfLifeMultiplay::OnRoundEnd, this, winStatus, event, tmDelay);
+
+#ifdef REGAMEDLL_ADD
+	if (roundEnded && !wasRoundTerminating && IsCombatReportRoundEndEvent(event))
+		g_bCombatReportPending = true;
+#endif
+
+	return roundEnded;
 }
 
 bool EXT_FUNC CHalfLifeMultiplay::OnRoundEnd(int winStatus, ScenarioEventEndRound event, float tmDelay)
@@ -1721,6 +1747,27 @@ void EXT_FUNC CHalfLifeMultiplay::__API_HOOK(CheckMapConditions)()
 	m_bMapHasVIPSafetyZone = (UTIL_FindEntityByClassname(nullptr, "func_vip_safetyzone") != nullptr);
 }
 
+#ifdef REGAMEDLL_ADD
+
+static void ProcessCombatReports(bool displayReports, bool resetReports)
+{
+	for (int i = 1; i <= gpGlobals->maxClients; i++)
+	{
+		CBasePlayer *pPlayer = UTIL_PlayerByIndex(i);
+		if (!UTIL_IsValidPlayer(pPlayer))
+			continue;
+
+		CCSPlayer *pCSPlayer = pPlayer->CSPlayer();
+		if (displayReports && combat_report.value > 0.0f && !pPlayer->IsBot())
+			pCSPlayer->PrintCombatReport();
+
+		if (resetReports)
+			pCSPlayer->ResetCombatReport();
+	}
+}
+
+#endif
+
 LINK_HOOK_CLASS_VOID_CUSTOM_CHAIN2(CHalfLifeMultiplay, CSGameRules, RestartRound)
 
 void EXT_FUNC CHalfLifeMultiplay::__API_HOOK(RestartRound)()
@@ -1739,6 +1786,11 @@ void EXT_FUNC CHalfLifeMultiplay::__API_HOOK(RestartRound)()
 	{
 		g_pHostages->RestartRound();
 	}
+
+#ifdef REGAMEDLL_ADD
+	g_bCombatReportPending = false;
+	ProcessCombatReports(false, true);
+#endif
 
 #ifdef REGAMEDLL_FIXES
 	if (!m_bCompleteReset)
@@ -2453,6 +2505,14 @@ LINK_HOOK_CLASS_VOID_CUSTOM_CHAIN2(CHalfLifeMultiplay, CSGameRules, Think)
 
 void EXT_FUNC CHalfLifeMultiplay::__API_HOOK(Think)()
 {
+#ifdef REGAMEDLL_ADD
+	if (g_bCombatReportPending)
+	{
+		g_bCombatReportPending = false;
+		ProcessCombatReports(true, false);
+	}
+#endif
+
 	MonitorTutorStatus();
 	m_VoiceGameMgr.Update(gpGlobals->frametime);
 
