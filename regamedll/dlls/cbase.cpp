@@ -1294,7 +1294,8 @@ static void SendRecoilVisualizationTracer(CBasePlayer *pShooter, const Vector &v
 	if (distance <= 0.0f)
 		return;
 
-	const float tracerSpeed = 6000.0f;
+	// Keep every velocity component within GoldSrc's signed WRITE_COORD range.
+	const float tracerSpeed = 3000.0f;
 	const Vector vecVelocity = vecDelta.Normalize() * tracerSpeed;
 	int life = int(distance / (tracerSpeed * 0.1f)) + 1;
 	if (life > 255)
