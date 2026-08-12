@@ -1260,6 +1260,106 @@ bool EXT_FUNC IsPenetrableEntity_default(Vector &vecSrc, Vector &vecEnd, entvars
 	return true;
 }
 
+#ifdef REGAMEDLL_ADD
+
+static void SendRecoilVisualizationBeam(CBasePlayer *pShooter, const Vector &vecStart, const Vector &vecEnd,
+	int red, int green, int blue, int life, int width, int brightness)
+{
+	MESSAGE_BEGIN(MSG_ONE_UNRELIABLE, SVC_TEMPENTITY, nullptr, pShooter->edict());
+		WRITE_BYTE(TE_BEAMPOINTS);
+		WRITE_COORD(vecStart.x);
+		WRITE_COORD(vecStart.y);
+		WRITE_COORD(vecStart.z);
+		WRITE_COORD(vecEnd.x);
+		WRITE_COORD(vecEnd.y);
+		WRITE_COORD(vecEnd.z);
+		WRITE_SHORT(g_sModelIndexLaser);
+		WRITE_BYTE(0); // starting frame
+		WRITE_BYTE(0); // frame rate
+		WRITE_BYTE(life);
+		WRITE_BYTE(width);
+		WRITE_BYTE(0); // noise
+		WRITE_BYTE(red);
+		WRITE_BYTE(green);
+		WRITE_BYTE(blue);
+		WRITE_BYTE(brightness);
+		WRITE_BYTE(0); // scroll speed
+	MESSAGE_END();
+}
+
+static void ShowRecoilVisualization(entvars_t *pevAttacker, const Vector &vecSrc, const TraceResult &tr)
+{
+	int mode = int(recoil_visualization.value);
+	if (mode <= 0 || !pevAttacker)
+		return;
+
+	CBaseEntity *pAttacker = CBaseEntity::Instance(pevAttacker);
+	if (!pAttacker || !pAttacker->IsPlayer())
+		return;
+
+	CBasePlayer *pShooter = static_cast<CBasePlayer *>(pAttacker);
+	int shot = 1;
+	if (pShooter->m_pActiveItem && pShooter->m_pActiveItem->IsWeapon())
+	{
+		CBasePlayerWeapon *pWeapon = static_cast<CBasePlayerWeapon *>(pShooter->m_pActiveItem);
+		shot = pWeapon->m_iShotsFired;
+		if (shot < 1)
+			shot = 1;
+	}
+
+	int red, green, blue;
+	if (shot <= 5)
+	{
+		red = 64;
+		green = 255;
+		blue = 64;
+	}
+	else if (shot <= 10)
+	{
+		red = 255;
+		green = 220;
+		blue = 32;
+	}
+	else
+	{
+		red = 255;
+		green = 64;
+		blue = 160;
+	}
+
+	if (mode >= 2)
+	{
+		SendRecoilVisualizationBeam(pShooter, vecSrc, tr.vecEndPos, red, green, blue, 2, 3, 160);
+	}
+
+	if (tr.flFraction == 1.0f)
+		return;
+
+	Vector vecNormal = tr.vecPlaneNormal;
+	Vector vecTangent = CrossProduct(vecNormal, Vector(0, 0, 1));
+	if (vecTangent.Length() < 0.1f)
+		vecTangent = CrossProduct(vecNormal, Vector(0, 1, 0));
+	if (vecTangent.Length() < 0.1f)
+		vecTangent = gpGlobals->v_right;
+	else
+		vecTangent = vecTangent.Normalize();
+
+	Vector vecBitangent = CrossProduct(vecNormal, vecTangent);
+	if (vecBitangent.Length() < 0.1f)
+		vecBitangent = gpGlobals->v_up;
+	else
+		vecBitangent = vecBitangent.Normalize();
+
+	const Vector vecMarkerCenter = tr.vecEndPos + vecNormal * 0.5f;
+	const float markerRadius = 4.0f;
+	SendRecoilVisualizationBeam(pShooter, vecMarkerCenter - vecTangent * markerRadius,
+		vecMarkerCenter + vecTangent * markerRadius, red, green, blue, 12, 12, 255);
+	SendRecoilVisualizationBeam(pShooter, vecMarkerCenter - vecBitangent * markerRadius,
+		vecMarkerCenter + vecBitangent * markerRadius, red, green, blue, 12, 12, 255);
+}
+
+#endif // REGAMEDLL_ADD
+
 
 LINK_HOOK_CLASS_CHAIN(VectorRef, CBaseEntity, FireBullets3, (VectorRef vecSrc, VectorRef vecDirShooting, float vecSpread, float flDistance, int iPenetration, int iBulletType, int iDamage, float flRangeModifier, entvars_t *pevAttacker, bool bPistol, int shared_rand), vecSrc, vecDirShooting, vecSpread, flDistance, iPenetration, iBulletType, iDamage, flRangeModifier, pevAttacker, bPistol, shared_rand)
 
@@ -1369,6 +1469,13 @@ VectorRef CBaseEntity::__API_HOOK(FireBullets3)(VectorRef vecSrc, VectorRef vecD
 		gpGlobals->trace_flags = FTRACE_BULLET;
 #endif
 		UTIL_TraceLine(vecSrc, vecEnd, dont_ignore_monsters, ENT(pev), &tr);
+
+#ifdef REGAMEDLL_ADD
+		if (iPenetration == iStartPenetration)
+		{
+			ShowRecoilVisualization(pevAttacker, vecSrc, tr);
+		}
+#endif
 
 		if (TheBots && tr.flFraction != 1.0f)
 		{

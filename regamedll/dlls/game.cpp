@@ -209,6 +209,7 @@ cvar_t knockback               = { "mp_knockback", "170", 0, 170.0f, nullptr };
 
 cvar_t knife_wall_sparks       = { "mp_knife_wall_sparks", "0", 0, 0.0f, nullptr };
 cvar_t show_bomb_timer         = { "mp_show_bomb_timer", "0", 0, 0.0f, nullptr };
+cvar_t recoil_visualization    = { "sv_recoil_visualization", "0", 0, 0.0f, nullptr };
 
 void GameDLL_Version_f()
 {
@@ -539,6 +540,7 @@ void EXT_FUNC GameDLLInit()
 
 	CVAR_REGISTER(&knife_wall_sparks);
 	CVAR_REGISTER(&show_bomb_timer);
+	CVAR_REGISTER(&recoil_visualization);
 
 	// print version
 	CONSOLE_ECHO("ReGameDLL version: " APP_VERSION "\n");
