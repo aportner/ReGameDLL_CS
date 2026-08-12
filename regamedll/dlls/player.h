@@ -336,6 +336,7 @@ public:
 
 class CBloodSplat: public CBaseEntity {
 public:
+	using CBaseEntity::Spawn;
 	void Spawn(entvars_t *pevOwner);
 	void Spray();
 };
