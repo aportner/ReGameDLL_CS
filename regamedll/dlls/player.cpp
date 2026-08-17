@@ -899,6 +899,38 @@ void LogAttack(CBasePlayer *pAttacker, CBasePlayer *pVictim, int teamAttack, int
 	}
 }
 
+#ifdef REGAMEDLL_ADD
+
+static void ShowDamageNumber(CBasePlayer *pAttacker, CBasePlayer *pVictim, int damage)
+{
+	if (damage_numbers.value <= 0.0f || damage <= 0 || !pAttacker || pAttacker == pVictim || pAttacker->IsBot())
+		return;
+
+	char text[16];
+	Q_snprintf(text, sizeof(text), "%d", damage);
+
+	hudtextparms_t textParms = {};
+	textParms.x = -1.0f;
+	textParms.y = 0.55f;
+	textParms.effect = 0;
+	textParms.r1 = 0;
+	textParms.g1 = 100;
+	textParms.b1 = 200;
+	textParms.a1 = 255;
+	textParms.r2 = 0;
+	textParms.g2 = 100;
+	textParms.b2 = 200;
+	textParms.a2 = 255;
+	textParms.fadeinTime = 0.02f;
+	textParms.fadeoutTime = 0.2f;
+	textParms.holdTime = 0.5f;
+	textParms.channel = 4;
+
+	UTIL_HudMessage(pAttacker, textParms, text);
+}
+
+#endif
+
 LINK_HOOK_CLASS_CHAIN(BOOL, CBasePlayer, TakeDamage, (entvars_t *pevInflictor, entvars_t *pevAttacker, float flDamage, int bitsDamageType), pevInflictor, pevAttacker, flDamage, bitsDamageType)
 
 // Take some damage.
@@ -1048,6 +1080,7 @@ BOOL EXT_FUNC CBasePlayer::__API_HOOK(TakeDamage)(entvars_t *pevInflictor, entva
 			const bool killed = flHealthBeforeDamage > 0.0f && pev->health <= 0.0f;
 			CSPlayer()->RecordCombatDamage(pAttack, int(flDamage), killed,
 				killed && m_bHeadshotKilled, killed ? GetKillerWeaponName(pevInflictor, pevAttacker) : nullptr);
+			ShowDamageNumber(pAttack, this, int(flDamage));
 		}
 #endif
 
@@ -1316,6 +1349,7 @@ BOOL EXT_FUNC CBasePlayer::__API_HOOK(TakeDamage)(entvars_t *pevInflictor, entva
 		const bool killed = flHealthBeforeDamage > 0.0f && pev->health <= 0.0f;
 		CSPlayer()->RecordCombatDamage(pAttack, int(flDamage), killed,
 			killed && m_bHeadshotKilled, killed ? GetKillerWeaponName(pevInflictor, pevAttacker) : nullptr);
+		ShowDamageNumber(pAttack, this, int(flDamage));
 	}
 #endif
 

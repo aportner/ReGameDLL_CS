@@ -55,6 +55,7 @@ This means that plugins that do binary code analysis (Orpheu for example) probab
 | mp_roundover                       | 0       | 0   | 3            | The round by expired time will be over, if on a map it does not have the scenario of the game.<br/>`0` disabled<br/>`1` end of the round with a draw<br/>`2` round end with Terrorists win<br/>`3` round end with Counter-Terrorists win |
 | mp_round_restart_delay             | 5       | -   | -            | Number of seconds to delay before restarting a round after a win. |
 | mp_combat_report                   | 0       | 0   | 1            | Show each human player a per-opponent HUD combat report when the round ends.<br/>`0` disabled<br/>`1` enabled |
+| mp_damage_numbers                  | 0       | 0   | 1            | Briefly show the damage dealt to another player below the attacker's crosshair.<br/>`0` disabled<br/>`1` enabled |
 | mp_hegrenade_penetration           | 0       | 0   | 1            | Disable grenade damage through walls.<br/>`0` disabled<br/>`1` enabled |
 | mp_nadedrops                       | 0       | 0   | 2            | Drop a grenade after player death.<br/>`0` disabled<br/>`1` drop first available grenade<br/>`2` drop all grenades |
 | mp_weapondrop                      | 1       | 0   | 3            | Drop player weapon after death.<br/>`0` do not drop weapons after death<br/>`1` drop best/heaviest weapon after death<br/>`2` drop active weapon after death<br/>`3` drop all weapons after death (primary and secondary) |
